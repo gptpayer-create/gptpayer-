@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPTPayer — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #16161f;
+  --border: #1e1e2e;
+  --border2: #2a2a3d;
+  --text: #e8e8f0;
+  --muted: #6b6b8a;
+  --accent: #6c63ff;
+  --accent-glow: rgba(108,99,255,0.25);
+  --green: #00d084;
+  --green-glow: rgba(0,208,132,0.2);
+  --red: #ff4d6a;
+  --red-glow: rgba(255,77,106,0.2);
+  --gold: #ffb347;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(108,99,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+#login-screen.hidden{display:none;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 0 80px rgba(108,99,255,0.1);position:relative;z-index:1;animation:slideUp 0.5s ease both;}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.login-logo{font-family:'Space Mono',monospace;font-weight:700;font-size:1.3rem;margin-bottom:8px;}
+.login-logo span{color:var(--accent);}
+.login-badge{display:inline-block;background:rgba(108,99,255,0.15);color:var(--accent);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:0.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:28px;}
+.login-box h2{font-size:1.5rem;font-weight:800;margin-bottom:6px;}
+.login-box p{color:var(--muted);font-size:0.875rem;margin-bottom:28px;}
+.login-field{background:var(--bg);border:1.5px solid var(--border2);color:var(--text);width:100%;padding:14px 16px;border-radius:12px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;margin-bottom:14px;}
+.login-field:focus{border-color:var(--accent);}
+.login-field::placeholder{color:var(--muted);}
+.login-btn{width:100%;background:var(--accent);color:#fff;border:none;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 25px var(--accent-glow);}
+.login-error{color:var(--red);font-size:0.8rem;margin-top:10px;text-align:center;display:none;}
+
+/* ADMIN */
+#admin-panel{display:none;position:relative;z-index:1;}
+#admin-panel.show{display:block;}
+
+/* TOPBAR */
+.admin-topbar{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+.admin-logo{font-family:'Space Mono',monospace;font-weight:700;font-size:1.1rem;}
+.admin-logo span{color:var(--accent);}
+.admin-badge{background:rgba(108,99,255,0.15);color:var(--accent);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:0.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 10px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.live-label{font-size:0.75rem;color:var(--green);font-weight:600;}
+.logout-btn{background:none;border:1px solid var(--border2);color:var(--muted);padding:7px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* CONTENT */
+.admin-content{padding:28px 32px;max-width:1200px;margin:0 auto;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;}
+.s-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
+.s-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.s-card.purple::before{background:var(--accent);}
+.s-card.green::before{background:var(--green);}
+.s-card.gold::before{background:var(--gold);}
+.s-card.red::before{background:var(--red);}
+.s-icon{font-size:1.5rem;margin-bottom:12px;}
+.s-val{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:4px;}
+.s-label{font-size:0.75rem;color:var(--muted);}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:24px;width:fit-content;}
+.tab{padding:8px 20px;border-radius:9px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;color:var(--muted);}
+.tab.active{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-glow);}
+.tab-count{display:inline-block;background:rgba(255,255,255,0.15);border-radius:10px;padding:1px 7px;font-size:0.7rem;margin-left:6px;}
+.tab:not(.active) .tab-count{background:var(--border2);color:var(--muted);}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.search-box{background:var(--surface);border:1.5px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:10px;font-size:0.875rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;flex:1;min-width:200px;}
+.search-box:focus{border-color:var(--accent);}
+.search-box::placeholder{color:var(--muted);}
+.refresh-btn{background:var(--surface);border:1.5px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:10px;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;display:flex;align-items:center;gap:6px;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* TABLE */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.wd-table,.users-table{width:100%;border-collapse:collapse;}
+.wd-table th,.users-table th{text-align:left;padding:10px 16px;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.wd-table td,.users-table td{padding:14px 16px;font-size:0.875rem;vertical-align:middle;border-bottom:1px solid var(--border);}
+.wd-table tr:last-child td,.users-table tr:last-child td{border-bottom:none;}
+.wd-table tr:hover td,.users-table tr:hover td{background:var(--surface2);}
+@keyframes rowFade{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:translateX(0);}}
+.wd-row{animation:rowFade 0.25s ease both;}
+.user-cell .uname{font-weight:700;}
+.user-cell .uemail{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+.method-pill{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:0.78rem;font-weight:600;}
+.amount-cell{font-family:'Space Mono',monospace;font-weight:700;font-size:1rem;color:var(--gold);}
+.status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.72rem;font-weight:800;}
+.status-badge.pending{background:rgba(255,179,71,0.15);color:var(--gold);border:1px solid rgba(255,179,71,0.3);}
+.status-badge.approved{background:var(--green-glow);color:var(--green);border:1px solid rgba(0,208,132,0.3);}
+.status-badge.rejected{background:var(--red-glow);color:var(--red);border:1px solid rgba(255,77,106,0.3);}
+.action-btns{display:flex;gap:6px;}
+
+.btn-done{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:700;font-family:'DM Sans',sans-serif;}
+.coin-chip{font-family:'Space Mono',monospace;font-weight:700;color:var(--accent);}
+.empty-table{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-table .ei{font-size:3rem;margin-bottom:12px;}
+
+
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:14px 22px;border-radius:14px;font-size:0.875rem;font-weight:600;opacity:0;transform:translateY(10px);transition:all 0.3s;pointer-events:none;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.4);}
+.toast.show{opacity:1;transform:translateY(0);}
+
+@media(max-width:768px){
+  .admin-content{padding:16px;}
+  .admin-topbar{padding:0 16px;}
+  .wd-table th:nth-child(3),.wd-table td:nth-child(3){display:none;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  #tab-content-stats .chart-grid{grid-template-columns:1fr !important;}
+}
+.stat-period-btn{padding:7px 16px;border-radius:9px;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;color:var(--muted);user-select:none;}
+.stat-period-btn.active{background:var(--accent);color:#fff;box-shadow:0 4px 12px var(--accent-glow);}
+.stat-period-btn:hover:not(.active){color:var(--text);}
+#download-csv-btn:hover{border-color:var(--green);box-shadow:0 4px 12px var(--green-glow);}
+#download-json-btn:hover{border-color:var(--accent);box-shadow:0 4px 12px var(--accent-glow);}
+.chart-type-group{display:flex;gap:3px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:3px;}
+.ctype-btn{background:none;border:none;color:var(--muted);padding:4px 10px;border-radius:6px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap;}
+.ctype-btn.active{background:var(--accent);color:#fff;}
+.ctype-btn:hover:not(.active){color:var(--text);background:var(--surface2);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><span>GPT</span>Payer</div>
+    <div class="login-badge">Admin Panel</div>
+    <h2>Welcome back 👋</h2>
+    <p>Enter admin credentials to access the panel</p>
+    <input type="text" class="login-field" id="admin-user" placeholder="Admin Username">
+    <input type="password" class="login-field" id="admin-pass" placeholder="Admin Password">
+    <button class="login-btn" id="login-btn">🔐 Login to Admin Panel</button>
+    <div class="login-error" id="login-error">❌ Wrong credentials. Try again.</div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <div class="admin-topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="admin-logo"><span>GPT</span>Payer</div>
+      <div class="admin-badge">Admin</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-dot"></div>
+      <div class="live-label">Live</div>
+      <div id="live-time" style="font-size:0.7rem;color:var(--muted);font-family:'Space Mono',monospace;"></div>
+      <button class="logout-btn" id="logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <div class="admin-content">
+    <div class="stats-row">
+      <div class="s-card purple"><div class="s-icon">⏳</div><div class="s-val" id="stat-pending">—</div><div class="s-label">Pending</div></div>
+      <div class="s-card green"><div class="s-icon">✅</div><div class="s-val" id="stat-approved">—</div><div class="s-label">Approved Today</div></div>
+      <div class="s-card gold"><div class="s-icon">💰</div><div class="s-val" id="stat-total">—</div><div class="s-label">Total Paid Out</div></div>
+      <div class="s-card red"><div class="s-icon">👥</div><div class="s-val" id="stat-users">—</div><div class="s-label">Total Users</div></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-pending">⏳ Pending <span class="tab-count" id="tc-pending">0</span></div>
+      <div class="tab" id="tab-all">📋 All Requests <span class="tab-count" id="tc-all">0</span></div>
+      <div class="tab" id="tab-users">👥 Users <span class="tab-count" id="tc-users">0</span></div>
+      <div class="tab" id="tab-stats">📊 Statistics</div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" class="search-box" id="search-box" placeholder="🔍 Search by name, email, amount...">
+      <button class="refresh-btn" id="refresh-btn">🔄 Refresh</button>
+    </div>
+
+    <div id="tab-content-withdrawals">
+      <div class="table-card">
+        <div style="overflow-x:auto;">
+          <table class="wd-table">
+            <thead><tr><th>User</th><th>Amount</th><th>Method & Address</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="wd-tbody"><tr><td colspan="6"><div class="empty-table"><div class="ei">⏳</div><p>Loading...</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-content-users" style="display:none;">
+      <div class="table-card">
+        <div style="overflow-x:auto;">
+          <table class="users-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Coins</th><th>Earned</th><th>Streak</th><th>Referrals</th><th>Joined</th><th>Withdrawal Status</th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="7"><div class="empty-table"><div class="ei">⏳</div><p>Loading...</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATISTICS TAB -->
+    <div id="tab-content-stats" style="display:none;">
+      <!-- Period Selector + Download -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div style="display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;">
+          <div class="stat-period-btn active" data-period="hour">Per Hour</div>
+          <div class="stat-period-btn" data-period="day">Per Day</div>
+          <div class="stat-period-btn" data-period="week">Per Week</div>
+          <div class="stat-period-btn" data-period="month">Per Month</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="download-csv-btn" style="background:var(--surface);border:1.5px solid var(--border2);color:var(--green);padding:9px 18px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;display:flex;align-items:center;gap:6px;">⬇️ CSV</button>
+          <button id="download-json-btn" style="background:var(--surface);border:1.5px solid var(--border2);color:var(--accent);padding:9px 18px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;display:flex;align-items:center;gap:6px;">⬇️ JSON</button>
+        </div>
+      </div>
+
+      <!-- Summary Mini Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+        <div class="s-card purple" style="padding:16px;">
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Total Withdrawals</div>
+          <div class="s-val" id="st-total-wd" style="font-size:1.5rem;">—</div>
+        </div>
+        <div class="s-card green" style="padding:16px;">
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Total Paid Out</div>
+          <div class="s-val" id="st-total-paid" style="font-size:1.5rem;">—</div>
+        </div>
+        <div class="s-card gold" style="padding:16px;">
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Avg Per Request</div>
+          <div class="s-val" id="st-avg" style="font-size:1.5rem;">—</div>
+        </div>
+        <div class="s-card red" style="padding:16px;">
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Approval Rate</div>
+          <div class="s-val" id="st-approval" style="font-size:1.5rem;">—</div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+        <!-- Chart 1: Withdrawal Requests -->
+        <div class="table-card" style="padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:0.9rem;">📈 Withdrawal Requests</div>
+            <div class="chart-type-group" data-chart="requests">
+              <button class="ctype-btn active" data-type="bar">▊ Bar</button>
+              <button class="ctype-btn" data-type="line">📈 Line</button>
+              <button class="ctype-btn" data-type="pie">🥧 Pie</button>
+            </div>
+          </div>
+          <div style="position:relative;height:220px;"><canvas id="chart-requests"></canvas></div>
+        </div>
+
+        <!-- Chart 2: Amount Paid -->
+        <div class="table-card" style="padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:0.9rem;">💰 Amount Paid Out (₹)</div>
+            <div class="chart-type-group" data-chart="amount">
+              <button class="ctype-btn active" data-type="bar">▊ Bar</button>
+              <button class="ctype-btn" data-type="line">📈 Line</button>
+              <button class="ctype-btn" data-type="pie">🥧 Pie</button>
+            </div>
+          </div>
+          <div style="position:relative;height:220px;"><canvas id="chart-amount"></canvas></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+        <!-- Chart 3: New Users -->
+        <div class="table-card" style="padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:0.9rem;">👥 New Users Joined</div>
+            <div class="chart-type-group" data-chart="users">
+              <button class="ctype-btn active" data-type="bar">▊ Bar</button>
+              <button class="ctype-btn" data-type="line">📈 Line</button>
+              <button class="ctype-btn" data-type="pie">🥧 Pie</button>
+            </div>
+          </div>
+          <div style="position:relative;height:220px;"><canvas id="chart-users"></canvas></div>
+        </div>
+
+        <!-- Chart 4: Status Breakdown -->
+        <div class="table-card" style="padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:0.9rem;">🍩 Status Breakdown</div>
+            <div class="chart-type-group" data-chart="status">
+              <button class="ctype-btn active" data-type="pie">🥧 Pie</button>
+              <button class="ctype-btn" data-type="bar">▊ Bar</button>
+              <button class="ctype-btn" data-type="line">📈 Line</button>
+            </div>
+          </div>
+          <div style="position:relative;height:220px;"><canvas id="chart-status"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Detailed Stats Table -->
+      <div class="table-card">
+        <div style="padding:16px 20px;font-weight:700;font-size:0.9rem;border-bottom:1px solid var(--border);">📋 Detailed Breakdown</div>
+        <div style="overflow-x:auto;">
+          <table class="wd-table" id="stats-detail-table">
+            <thead><tr><th>Period</th><th>Requests</th><th>Approved</th><th>Rejected</th><th>Pending</th><th>Amount Paid</th><th>New Users</th></tr></thead>
+            <tbody id="stats-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="toast" id="toast"></div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ── INIT ──
+const app = initializeApp({
+  apiKey: "AIzaSyAv9LaQugG-G3IWSvS_95V8nAZGHYqAAzI",
+  authDomain: "gptpayer-4b4fb.firebaseapp.com",
+  projectId: "gptpayer-4b4fb",
+  storageBucket: "gptpayer-4b4fb.firebasestorage.app",
+  messagingSenderId: "335192749347",
+  appId: "1:335192749347:web:ff783fb5fb76e073d68896"
+});
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+// ── CREDENTIALS ──
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'gpt';
+
+// ── STATE ──
+let allWithdrawals = [], allUsers = [], currentTab = 'pending';
+
+const methodIcons = { upi:'📲', amazon:'🛒', google:'🎮', paytm:'💙' };
+const methodNames = { upi:'UPI / PayTM', amazon:'Amazon Pay', google:'Google Play', paytm:'PayTM' };
+
+// ── HELPERS ──
+function $(id){ return document.getElementById(id); }
+function showToast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+function fmt(ts){
+  if (!ts) return '—';
+  return (ts.toDate ? ts.toDate() : new Date(ts))
+    .toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function normalizeStatus(s){
+  return (s || 'pending').toString().trim().toLowerCase();
+}
+
+// ── LOGIN ──
+function tryLogin(){
+  const u = $('admin-user').value.trim(), p = $('admin-pass').value;
+  if (u === ADMIN_USER && p === ADMIN_PASS){
+    $('login-screen').classList.add('hidden');
+    $('admin-panel').classList.add('show');
+    startAdmin();
+  } else {
+    const err = $('login-error'); err.style.display='block';
+    setTimeout(()=>err.style.display='none', 3000);
+  }
+}
+$('login-btn').addEventListener('click', tryLogin);
+$('admin-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+$('admin-user').addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+$('logout-btn').addEventListener('click', ()=>{
+  if(_unsubWithdrawals) { _unsubWithdrawals(); _unsubWithdrawals = null; }
+  if(_unsubUsers)       { _unsubUsers();       _unsubUsers = null; }
+  $('login-screen').classList.remove('hidden');
+  $('admin-panel').classList.remove('show');
+  $('admin-user').value=''; $('admin-pass').value='';
+});
+
+// ── REAL-TIME LISTENERS (unsubscribe refs) ──
+let _unsubWithdrawals = null;
+let _unsubUsers = null;
+
+// ── START: Anonymous Auth then attach real-time listeners ──
+async function startAdmin(){
+  try {
+    await signInAnonymously(auth);
+    attachListeners();
+  } catch(e) {
+    showToast('❌ Firebase Error: ' + e.message);
+    console.error(e);
+    $('wd-tbody').innerHTML = `<tr><td colspan="5"><div class="empty-table">
+      <div class="ei">⚠️</div>
+      <p style="color:#ff4d6a">Firebase connection failed.<br>Check your Firestore Rules — allow read: if true;</p>
+    </div></td></tr>`;
+  }
+}
+
+function attachListeners(){
+  // ── WITHDRAWALS real-time listener ──
+  const wdQuery = query(collection(db, 'withdrawals'), orderBy('createdAt', 'desc'));
+  _unsubWithdrawals = onSnapshot(wdQuery, (snap) => {
+    allWithdrawals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderStats();
+    renderTable();
+    const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    if($('live-time')) $('live-time').textContent = 'Live · ' + now;
+    // Show flash only on changes (not first load)
+    if (!snap.metadata.hasPendingWrites && snap.docChanges().some(c => c.type !== 'added' || snap.docs.length <= snap.docChanges().length)) {
+      const changed = snap.docChanges().filter(c => c.type === 'modified');
+      if(changed.length > 0){
+        const w = changed[0].doc.data();
+        const st = normalizeStatus(w.status);
+        const icons = { pending:'⏳', approved:'✅', rejected:'❌' };
+        showToast(`${icons[st]||'🔔'} ${w.userName||'User'} — Status: ${st.toUpperCase()}`);
+      }
+    }
+  }, (err) => {
+    console.error('Withdrawal listener error:', err);
+    $('wd-tbody').innerHTML = `<tr><td colspan="5"><div class="empty-table">
+      <div class="ei">🔒</div>
+      <p style="color:#ff4d6a">Access denied.<br>Firebase Rules mein <b>withdrawals ko allow read: if true;</b> karo.</p>
+    </div></td></tr>`;
+  });
+
+  // ── USERS real-time listener ──
+  _unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    $('stat-users').textContent = allUsers.length;
+    $('tc-users').textContent   = allUsers.length;
+    renderUsersTable();
+  }, (err) => {
+    console.error('Users listener error:', err);
+  });
+
+  showToast('🟢 Real-time connected!');
+}
+
+// ── REFRESH BUTTON — re-attaches listeners if disconnected ──
+$('refresh-btn').addEventListener('click', ()=>{
+  showToast('🟢 Already live! Data auto-updates.');
+});
+
+
+// ── STATS ──
+function renderStats(){
+  const pending  = allWithdrawals.filter(w => normalizeStatus(w.status) === 'pending').length;
+  const todayStr = new Date().toDateString();
+  const appToday = allWithdrawals.filter(w =>
+    normalizeStatus(w.status) === 'approved' && w.createdAt &&
+    (w.createdAt.toDate ? w.createdAt.toDate() : new Date(w.createdAt)).toDateString() === todayStr
+  ).length;
+  const totalPaid = allWithdrawals
+    .filter(w => normalizeStatus(w.status) === 'approved')
+    .reduce((s, w) => s + (w.rupees || w.amount || 0), 0);
+
+  $('stat-pending').textContent  = pending;
+  $('stat-approved').textContent = appToday;
+  $('stat-total').textContent    = '₹' + totalPaid;
+  $('tc-pending').textContent    = pending;
+  $('tc-all').textContent        = allWithdrawals.length;
+}
+
+// ── WITHDRAWALS TABLE ──
+function renderTable(){
+  const search = $('search-box').value.toLowerCase();
+  let data = currentTab === 'pending'
+    ? allWithdrawals.filter(w => normalizeStatus(w.status) === 'pending')
+    : allWithdrawals;
+  if(search) data = data.filter(w =>
+    (w.userName||'').toLowerCase().includes(search) ||
+    (w.userEmail||'').toLowerCase().includes(search) ||
+    String(w.amount||'').includes(search) ||
+    (w.address||'').toLowerCase().includes(search)
+  );
+
+  const tbody = $('wd-tbody');
+  if(!data.length){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-table"><div class="ei">${currentTab==='pending'?'🎉':'📭'}</div><p>${currentTab==='pending'?'No pending withdrawals!':'No requests found'}</p></div></td></tr>`;
+    return;
+  }
+
+  const statusMap = {
+    pending:  { label: '⏳ Pending',  cls: 'pending'  },
+    approved: { label: '✅ Approved', cls: 'approved' },
+    rejected: { label: '❌ Rejected', cls: 'rejected' }
+  };
+
+  tbody.innerHTML = data.map((w, i) => {
+    const st = normalizeStatus(w.status);
+    const sm = statusMap[st] || { label: st, cls: 'pending' };
+    return `
+    <tr class="wd-row" style="animation-delay:${i*0.04}s">
+      <td>
+        <div class="user-cell">
+          <div class="uname">${w.userName || 'Unknown'}</div>
+          <div class="uemail">${w.userEmail || ''}</div>
+        </div>
+      </td>
+      <td><span class="amount-cell">₹${w.rupees || w.amount}</span></td>
+      <td>
+        <span class="method-pill">${methodIcons[w.method]||'💳'} ${methodNames[w.method]||w.method||'UPI'}</span>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:4px;word-break:break-all">${w.address||'—'}</div>
+      </td>
+      <td style="color:var(--muted);font-size:0.78rem;white-space:nowrap">${fmt(w.createdAt)}</td>
+      <td><span class="status-badge ${sm.cls}">${sm.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── USERS TABLE ──
+function renderUsersTable(){
+  const search = $('search-box').value.toLowerCase();
+  let data = search
+    ? allUsers.filter(u => (u.name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search))
+    : allUsers;
+
+  const tbody = $('users-tbody');
+  if(!data.length){
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-table"><div class="ei">👥</div><p>No users found</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map((u, i) => {
+    const userWithdrawals = allWithdrawals
+      .filter(w => w.userId === u.id)
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+
+    const latestW = userWithdrawals[0];
+    let withdrawalCell = '<span style="color:var(--muted);font-size:0.78rem">No requests</span>';
+    if (latestW) {
+      const st = normalizeStatus(latestW.status);
+      const statusStyles = {
+        pending:  { color: 'var(--gold)',  icon: '⏳' },
+        approved: { color: 'var(--green)', icon: '✅' },
+        rejected: { color: 'var(--red)',   icon: '❌' }
+      };
+      const ss = statusStyles[st] || statusStyles.pending;
+      const pendingCount = userWithdrawals.filter(w => normalizeStatus(w.status) === 'pending').length;
+      withdrawalCell = `
+        <div style="font-size:0.82rem">
+          <span style="color:${ss.color};font-weight:700">${ss.icon} ${st.charAt(0).toUpperCase()+st.slice(1)}</span>
+          <span style="color:var(--muted)"> · ₹${latestW.rupees||latestW.amount}</span>
+        </div>
+        ${pendingCount > 0 ? `<div style="font-size:0.72rem;color:var(--gold);margin-top:2px">⏳ ${pendingCount} pending</div>` : ''}`;
+    }
+
+    return `
+    <tr style="animation:rowFade 0.3s ${i*0.03}s both">
+      <td><strong>${u.name||'—'}</strong></td>
+      <td style="color:var(--muted);font-size:0.82rem">${u.email||'—'}</td>
+      <td><span class="coin-chip">⚡ ${u.coins||0}</span></td>
+      <td style="color:var(--gold)">₹${u.totalEarned||0}</td>
+      <td>🔥 ${u.streak||0}</td>
+      <td>👥 ${u.referrals||0}</td>
+      <td style="color:var(--muted);font-size:0.78rem">${fmt(u.createdAt)}</td>
+      <td>${withdrawalCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── TABS (updated to include stats) ──
+['pending','all','users','stats'].forEach(tab => {
+  $('tab-'+tab).addEventListener('click', () => {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    $('tab-'+tab).classList.add('active');
+    $('tab-content-withdrawals').style.display = 'none';
+    $('tab-content-users').style.display       = 'none';
+    $('tab-content-stats').style.display       = 'none';
+    if(tab === 'users')  { $('tab-content-users').style.display = 'block'; renderUsersTable(); }
+    else if(tab === 'stats') { $('tab-content-stats').style.display = 'block'; renderStats(); renderStatistics(); }
+    else { $('tab-content-withdrawals').style.display = 'block'; renderTable(); }
+  });
+});
+
+// ── STATISTICS ──
+let currentPeriod = 'day';
+let chartInstances = { requests: null, amount: null, users: null, status: null };
+let chartTypes = { requests: 'bar', amount: 'bar', users: 'bar', status: 'pie' };
+
+const CHART_COLORS = {
+  requests: { border: '#6c63ff', bg: 'rgba(108,99,255,0.5)', fill: 'rgba(108,99,255,0.12)' },
+  amount:   { border: '#ffb347', bg: 'rgba(255,179,71,0.6)',  fill: 'rgba(255,179,71,0.10)' },
+  users:    { border: '#00d084', bg: 'rgba(0,208,132,0.6)',   fill: 'rgba(0,208,132,0.10)' },
+  status:   { border: '#ff4d6a', bg: 'rgba(255,77,106,0.6)', fill: 'rgba(255,77,106,0.10)' },
+};
+
+const SCALES_OPT = {
+  x: { ticks: { color: '#6b6b8a', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+  y: { ticks: { color: '#6b6b8a', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+};
+
+function getPeriodKey(date, period) {
+  if (!date) return '—';
+  const d = date.toDate ? date.toDate() : new Date(date);
+  if (period === 'hour') {
+    return `${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:00`;
+  } else if (period === 'day') {
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+  } else if (period === 'week') {
+    const start = new Date(d);
+    start.setDate(d.getDate() - d.getDay());
+    return `W:${start.getDate()}/${start.getMonth()+1}/${String(start.getFullYear()).slice(-2)}`;
+  } else {
+    return d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+  }
+}
+
+function buildStatsData(period) {
+  const wdMap = {}, userMap = {};
+  allWithdrawals.forEach(w => {
+    const key = getPeriodKey(w.createdAt, period);
+    if (!wdMap[key]) wdMap[key] = { requests:0, approved:0, rejected:0, pending:0, paid:0 };
+    wdMap[key].requests++;
+    const st = normalizeStatus(w.status);
+    if (st === 'approved') { wdMap[key].approved++; wdMap[key].paid += (w.rupees||w.amount||0); }
+    else if (st === 'rejected') wdMap[key].rejected++;
+    else wdMap[key].pending++;
+  });
+  allUsers.forEach(u => {
+    const key = getPeriodKey(u.createdAt, period);
+    userMap[key] = (userMap[key]||0)+1;
+  });
+  const allKeys = [...new Set([...Object.keys(wdMap),...Object.keys(userMap)])].sort((a,b)=>a.localeCompare(b));
+  return { keys: allKeys, wdMap, userMap };
+}
+
+function buildChart(id, chartKey, type, labels, data, extraOpts={}) {
+  if (chartInstances[chartKey]) { chartInstances[chartKey].destroy(); chartInstances[chartKey]=null; }
+  const ctx = document.getElementById('chart-'+id);
+  const c = CHART_COLORS[chartKey] || CHART_COLORS.requests;
+
+  const isPie = type === 'pie';
+  const pieColors = ['rgba(0,208,132,0.8)','rgba(255,179,71,0.8)','rgba(255,77,106,0.8)','rgba(108,99,255,0.8)','rgba(100,200,255,0.8)','rgba(255,120,120,0.8)'];
+
+  const dataset = isPie
+    ? { data, backgroundColor: data.map((_,i) => pieColors[i%pieColors.length]), borderColor: '#0a0a0f', borderWidth: 2 }
+    : {
+        data,
+        backgroundColor: type==='line' ? c.fill : c.bg,
+        borderColor: c.border,
+        borderWidth: type==='bar' ? 1 : 2,
+        fill: type==='line',
+        tension: 0.4,
+        pointRadius: type==='line' ? 3 : 0,
+        pointBackgroundColor: c.border,
+        borderRadius: type==='bar' ? 4 : 0,
+      };
+
+  chartInstances[chartKey] = new Chart(ctx, {
+    type: isPie ? 'pie' : type,
+    data: { labels, datasets: [dataset] },
+    options: isPie
+      ? { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'#6b6b8a', padding:10, font:{family:'DM Sans',size:11} } } }, ...extraOpts }
+      : { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales: SCALES_OPT, ...extraOpts }
+  });
+}
+
+function renderStatistics() {
+  const { keys, wdMap, userMap } = buildStatsData(currentPeriod);
+
+  // Summary cards
+  const totalWd   = allWithdrawals.length;
+  const approved  = allWithdrawals.filter(w=>normalizeStatus(w.status)==='approved').length;
+  const totalPaid = allWithdrawals.filter(w=>normalizeStatus(w.status)==='approved').reduce((s,w)=>s+(w.rupees||w.amount||0),0);
+  const avg = approved ? Math.round(totalPaid/approved) : 0;
+  const approvalRate = totalWd ? Math.round((approved/totalWd)*100) : 0;
+  $('st-total-wd').textContent   = totalWd;
+  $('st-total-paid').textContent = '₹'+totalPaid.toLocaleString('en-IN');
+  $('st-avg').textContent        = '₹'+avg;
+  $('st-approval').textContent   = approvalRate+'%';
+
+  const labels    = keys.slice(-24);
+  const reqData   = labels.map(k=>wdMap[k]?.requests||0);
+  const amtData   = labels.map(k=>wdMap[k]?.paid||0);
+  const usersData = labels.map(k=>userMap[k]||0);
+
+  buildChart('requests', 'requests', chartTypes.requests, labels, reqData);
+  buildChart('amount',   'amount',   chartTypes.amount,   labels, amtData);
+  buildChart('users',    'users',    chartTypes.users,    labels, usersData);
+
+  // Status chart — always uses status-specific labels
+  const statusLabels = ['Approved','Pending','Rejected'];
+  const statusData   = [
+    allWithdrawals.filter(w=>normalizeStatus(w.status)==='approved').length,
+    allWithdrawals.filter(w=>normalizeStatus(w.status)==='pending').length,
+    allWithdrawals.filter(w=>normalizeStatus(w.status)==='rejected').length,
+  ];
+  buildChart('status', 'status', chartTypes.status, statusLabels, statusData);
+
+  // Detail table
+  const tbody = $('stats-tbody');
+  if (!keys.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-table"><div class="ei">📊</div><p>No data yet</p></div></td></tr>`; return; }
+  tbody.innerHTML = keys.slice().reverse().map((k,i)=>{
+    const w=wdMap[k]||{}, u=userMap[k]||0;
+    return `<tr style="animation:rowFade 0.2s ${i*0.02}s both">
+      <td style="font-family:'Space Mono',monospace;font-size:0.78rem;">${k}</td>
+      <td>${w.requests||0}</td>
+      <td style="color:var(--green)">${w.approved||0}</td>
+      <td style="color:var(--red)">${w.rejected||0}</td>
+      <td style="color:var(--gold)">${w.pending||0}</td>
+      <td style="color:var(--gold);font-family:'Space Mono',monospace">₹${(w.paid||0).toLocaleString('en-IN')}</td>
+      <td style="color:var(--accent)">${u}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHART TYPE TOGGLE BUTTONS ──
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.ctype-btn');
+  if (!btn) return;
+  const group = btn.closest('.chart-type-group');
+  if (!group) return;
+  const chartKey = group.dataset.chart;
+  group.querySelectorAll('.ctype-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  chartTypes[chartKey] = btn.dataset.type;
+  renderStatistics();
+});
+
+// ── PERIOD BUTTONS ──
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('stat-period-btn')) {
+    document.querySelectorAll('.stat-period-btn').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentPeriod = e.target.dataset.period;
+    renderStatistics();
+  }
+});
+
+$('search-box').addEventListener('input', () => {
+  if(currentTab==='users') renderUsersTable(); else if(currentTab!=='stats') renderTable();
+});
+
+// ── DOWNLOAD ──
+function downloadCSV() {
+  const { keys, wdMap, userMap } = buildStatsData(currentPeriod);
+  const rows = [['Period','Requests','Approved','Rejected','Pending','Amount Paid (INR)','New Users']];
+  keys.forEach(k => {
+    const w = wdMap[k]||{};
+    rows.push([k, w.requests||0, w.approved||0, w.rejected||0, w.pending||0, w.paid||0, userMap[k]||0]);
+  });
+  const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `gptpayer_stats_${currentPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  showToast('✅ CSV Downloaded!');
+}
+
+function downloadJSON() {
+  const { keys, wdMap, userMap } = buildStatsData(currentPeriod);
+  const data = keys.map(k => ({
+    period:k, requests:wdMap[k]?.requests||0, approved:wdMap[k]?.approved||0,
+    rejected:wdMap[k]?.rejected||0, pending:wdMap[k]?.pending||0,
+    amountPaid:wdMap[k]?.paid||0, newUsers:userMap[k]||0,
+  }));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({period:currentPeriod,generatedAt:new Date().toISOString(),data},null,2)],{type:'application/json'}));
+  a.download = `gptpayer_stats_${currentPeriod}_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  showToast('✅ JSON Downloaded!');
+}
+
+$('download-csv-btn').addEventListener('click', downloadCSV);
+$('download-json-btn').addEventListener('click', downloadJSON);
+
+</script>
+
+</body>
+</html>
