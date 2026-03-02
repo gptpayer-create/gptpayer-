@@ -1,2 +1,0 @@
-# gptpayer-
-Gpt website 
